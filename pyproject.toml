@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "coin_detection_CV"
+version = "0.1.0"
+description = "Coin detection using CV"
+authors = ["trucupey <jsflorezj@gmail.com>"]
+readme = "README.md"
+packages = [{include = "coin_detection"}]
+
+[tool.poetry.dependencies]  
+python = ">=3.10,<=3.12"
+opencv-python = "^4.10.0"
+numpy = "^1.26.4"
+matplotlib = "^3.8.0"
+scikit-image = "^0.21.0"
+scikit-learn = "^1.5.2"
+scipy = "^1.13.0"
+pandas = "^2.2.3"
+ruff = { version = "^0.11.0", optional = true}
+
+[tool.poetry.extras]
+dev = [
+  "ruff",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+src = ["."]
+target-version = "py310"
+fix = true
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "Q", "N801", "N802", "N803", "N805", "N806"]
+ignore = ["F401"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.lint.isort]
+combine-as-imports = true 
