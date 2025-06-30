@@ -9,6 +9,9 @@ packages = [{include = "coin_detection"}]
 [tool.poetry.dependencies]  
 python = ">=3.10,<=3.12"
 opencv-python = "^4.10.0"
+pycocotools = "*"
+onnxruntime = "*"
+onnx = "*"
 numpy = "^1.26.4"
 matplotlib = "^3.8.0"
 scikit-image = "^0.21.0"
@@ -16,6 +19,9 @@ scikit-learn = "^1.5.2"
 scipy = "^1.13.0"
 pandas = "^2.2.3"
 ruff = { version = "^0.11.0", optional = true}
+sam = { git = "https://github.com/facebookresearch/segment-anything.git", branch = "main"}
+roboflow = { version = "*", extras = ["desktop"]}
+supervision = "*"
 
 [tool.poetry.extras]
 dev = [
