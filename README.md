@@ -5,7 +5,7 @@ Project to implement a multiobject object detection pipeline
 Multi object detection
 
 # Models
-Standardization of images
+## Standardization of images
 convert the images into a predefined size before passing them into the model
 
 ## Preprocessing
