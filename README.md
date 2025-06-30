@@ -31,8 +31,7 @@ Not necessary but potentially useful
   - generates bounding boxes
 - SAM
   - generates bounding boxes and masks
-
-We may use this one for its versatility
+  - We may use this one for its versatility
 
 To take into account
 We ned to generate both bounding box and masks
