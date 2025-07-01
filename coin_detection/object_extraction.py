@@ -10,6 +10,9 @@ from pydantic import BaseModel
 
 # Set the path to the COCO JSON file
 COCO_JSON_PATH = "/Users/juan/Desktop/Non Lyric stuff/Technical_tests/Coin_Detection_CV/source_code/coin-detection-CV/coin_detection/dataset/_annotations.coco.json"
+N_IMAGES_TO_PROCESS = 40
+# TODO: iterate over the iou threshold to compute the ROC curve
+IOU_THRESHOLD = 0.5
 
 class BoundingBox(BaseModel):
     xmin: int
@@ -32,8 +35,8 @@ class Prediction(BaseModel):
     score: float
 
 class Assignment(BaseModel):
-    prediction_index: int
-    ground_truth_index: int
+    prediction_bounding_box: BoundingBox
+    ground_truth_bounding_box: BoundingBox
     iou: float
 
 class HungarianAssignment(BaseModel):
@@ -135,33 +138,6 @@ def compute_jaccard_index_union(predictions: list[Prediction], image_annotations
     print(f"    🎯 Jaccard Index: {jaccard_index:.4f}")
     
     return jaccard_index
-
-def save_images_to_single_image(images, output_path="output_grid.jpg"):
-    """Combine multiple images into a single grid image."""
-    if not images:
-        return
-    
-    # Calculate grid dimensions
-    n = len(images)
-    cols = int(np.ceil(np.sqrt(n)))
-    rows = int(np.ceil(n / cols))
-    
-    # Get max dimensions
-    max_width = max(img.width for img in images)
-    max_height = max(img.height for img in images)
-    
-    # Create grid image
-    grid_img = Image.new('RGB', (cols * max_width, rows * max_height), 'white')
-    
-    # Paste images into grid
-    for idx, img in enumerate(images):
-        row = idx // cols
-        col = idx % cols
-        grid_img.paste(img, (col * max_width, row * max_height))
-    
-    # Save the grid
-    grid_img.save(output_path)
-    print(f"Saved grid image to {output_path}")
 
 def get_predictions(image, detector, labels) -> list[Prediction]:
     predictions = detector(
@@ -289,6 +265,7 @@ def hungarian_assignment(predictions: list[Prediction], ground_truths: list[Boun
     matched_ground_truths = set()
     
     # Check assignments from Hungarian algorithm
+    # TODO: check if the assignment is correct
     for pred_idx, gt_idx in zip(pred_indices, gt_indices):
         iou = iou_matrix[pred_idx, gt_idx]
         if iou >= iou_threshold:
@@ -296,7 +273,7 @@ def hungarian_assignment(predictions: list[Prediction], ground_truths: list[Boun
             tp_count += 1
             matched_predictions.add(pred_idx)
             matched_ground_truths.add(gt_idx)
-            assignments.append(Assignment(prediction_index=pred_idx, ground_truth_index=gt_idx, iou=iou))
+            assignments.append(Assignment(prediction_bounding_box=predictions[pred_idx].bounding_box, ground_truth_bounding_box=ground_truths[gt_idx], iou=float(iou)))
         # If IoU is below threshold, both prediction and GT remain unmatched
     
     # Count false positives (unmatched predictions)
@@ -383,7 +360,7 @@ if __name__ == "__main__":
         images_to_predict.append(image)
         image_names.append(image_file)
         counter += 1
-        if counter >= 5:
+        if counter >= N_IMAGES_TO_PROCESS:
             break
         
     # Process images
@@ -397,9 +374,8 @@ if __name__ == "__main__":
     total_tp = 0
     total_fp = 0
     total_fn = 0
-    iou_threshold = 0.5  # IoU threshold for considering a match as positive
     
-    print(f"🎯 Using IoU threshold: {iou_threshold}")
+    print(f"🎯 Using IoU threshold: {IOU_THRESHOLD}")
     
     for idx, (image, image_name) in enumerate(zip(images_to_predict, image_names)):
         print(f"\nProcessing image {idx + 1}/{len(images_to_predict)}: {image_name}")
@@ -423,8 +399,10 @@ if __name__ == "__main__":
         assignment = hungarian_assignment(
             predictions, 
             image_to_bounding_boxes[image_name], 
-            iou_threshold
+            IOU_THRESHOLD
         )
+
+        print(f" {image_name}: TP: {assignment.tp_count}, FP: {assignment.fp_count}, FN: {assignment.fn_count}")
         
         # Add to totals
         total_tp += assignment.tp_count
@@ -435,7 +413,7 @@ if __name__ == "__main__":
         if assignment.assignments:
             print(f"    Assignments:")
             for assignment in assignment.assignments:
-                print(f"      Prediction {assignment.prediction_index} -> GT {assignment.ground_truth_index} (IoU: {assignment.iou:.3f})")
+                print(f"      Prediction {assignment.prediction_bounding_box} -> GT {assignment.ground_truth_bounding_box} (IoU: {assignment.iou:.3f})")
         
         # Compute Jaccard Index
         print("  Computing Jaccard Index...")
@@ -463,12 +441,11 @@ if __name__ == "__main__":
             # Draw predicted bounding box
             draw.rectangle((xmin, ymin, xmax, ymax), outline="red", width=3)
             draw.text((xmin, ymin), f"{label}: {round(score, 2)}", fill="red")
-            # Draw ground truth bounding box
-            for bounding_box in image_to_bounding_boxes[image_name]:
-                xmin, ymin, xmax, ymax = bounding_box.xmin, bounding_box.ymin, bounding_box.xmax, bounding_box.ymax
-                draw.rectangle((xmin, ymin, xmax, ymax), outline="green", width=3)
-                draw.text((xmin, ymin), f"GT", fill="green")
-
+        # Draw ground truth bounding box
+        for bounding_box in image_to_bounding_boxes[image_name]:
+            xmin, ymin, xmax, ymax = bounding_box.xmin, bounding_box.ymin, bounding_box.xmax, bounding_box.ymax
+            draw.rectangle((xmin, ymin, xmax, ymax), outline="green", width=3)
+            draw.text((xmin, ymin), f"GT", fill="green")
         # Save individual image
         output_filename = f"output/{os.path.splitext(image_name)[0]}_detected.jpg"
         image_with_boxes.save(output_filename)
@@ -515,7 +492,7 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print("📊 F1 SCORE RESULTS")
     print(f"{'='*60}")
-    print(f"🎯 IoU Threshold: {iou_threshold}")
+    print(f"🎯 IoU Threshold: {IOU_THRESHOLD}")
     print(f"✅ Total True Positives (TP): {total_tp}")
     print(f"❌ Total False Positives (FP): {total_fp}")
     print(f"⭕ Total False Negatives (FN): {total_fn}")
