@@ -2,8 +2,6 @@ from transformers import pipeline
 import os
 import numpy as np
 from PIL import Image, ImageDraw
-import torch
-import torchvision.transforms as T
 import json
 from scipy.optimize import linear_sum_assignment
 from pydantic import BaseModel
