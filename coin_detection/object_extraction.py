@@ -393,6 +393,7 @@ if __name__ == "__main__":
     gt_counts = []  # Store ground truth counts for each image
     
     # F1 score tracking variables
+    # TODO: iterate over the iou threshold to compute the ROC curve
     total_tp = 0
     total_fp = 0
     total_fn = 0
